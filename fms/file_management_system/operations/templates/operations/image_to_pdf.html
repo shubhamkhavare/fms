@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convert Image to PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #000000;
+        }
+
+        form {
+            text-align: center;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            display: inline-block;
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        label:hover {
+            background-color: #2980b9;
+        }
+
+        button[type="submit"] {
+            background-color: #2ecc71;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #27ae60;
+        }
+
+        #downloadLink {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            text-decoration: none;
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -80px;
+        }
+
+        #downloadLink:hover {
+            background-color: #2980b9;
+        }
+
+        .message {
+            text-align: center;
+            color: #888;
+            margin-top: 10px;
+            display: none; /* Initially hidden */
+        }
+
+        /* Loading button style */
+        #loadingButton {
+            display: none;
+            background-color: #ccc;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: not-allowed;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Convert Image to PDF</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="fileInput">Choose image(s)</label>
+            <input type="file" id="fileInput" accept="image/*" multiple required>
+            <div class="message" id="message"></div>
+            <br><br>
+            <button type="submit" id="convertButton">Convert to PDF</button>
+            <!-- Loading button -->
+            <button id="loadingButton" disabled>Loading...</button>
+        </form>
+        <a id="downloadLink" href="#" style="display: none;" target="_blank">Download PDF</a>
+    </div>
+
+    <script>
+        // Get file input and message element
+        const fileInput = document.getElementById('fileInput');
+        const messageElement = document.getElementById('message');
+        const loadingButton = document.getElementById('loadingButton');
+        const convertButton = document.getElementById('convertButton');
+
+        // Add change event listener to file input
+        fileInput.addEventListener('change', function(event) {
+            const numFiles = event.target.files.length;
+            messageElement.textContent = `Images chosen: ${numFiles}`;
+            messageElement.style.display = 'block'; // Show the message
+        });
+
+        // Add submit event listener to form
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Show loading button and hide convert button
+            loadingButton.style.display = 'inline-block';
+            convertButton.style.display = 'none';
+
+            // Get the uploaded files
+            const files = fileInput.files;
+
+            // Create a FormData object
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('file', files[i]); // append each file with the same name 'file'
+            }
+
+            // Send a POST request to the Django API endpoint
+            fetch('/convert-image-to-pdf/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                // Check if the request was successful
+                if (!response.ok) {
+                    throw new Error(`Failed to convert image(s) to PDF: ${response.statusText}`);
+                }
+                // Return the response
+                return response.blob();
+            })
+            .then(blob => {
+                // Create a URL for the Blob
+                const url = URL.createObjectURL(blob);
+                // Set the href attribute of the download link to the URL
+                document.getElementById('downloadLink').href = url;
+                // Display the download link
+                document.getElementById('downloadLink').style.display = 'inline-block';
+            })
+            .catch(error => {
+                console.error('Error:', error.message);
+                alert('Failed to convert image(s) to PDF. Please try again later.');
+            })
+            .finally(() => {
+                // Hide loading button and show convert button
+                loadingButton.style.display = 'none';
+                convertButton.style.display = 'inline-block';
+            });
+        });
+    </script>
+</body>
+</html>
